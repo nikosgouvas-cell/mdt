@@ -16,6 +16,11 @@ npm run dev
 
 Then open <http://localhost:5173>.
 
+### Firebase setup
+- Copy `web/.env.example` to `web/.env` and paste in your Firebase credentials.
+- Follow the step-by-step Firebase setup guide in `docs/setup.md`.
+
 ### Notes
 - This is a front-end prototype that maps the agreed workflow (roles, case intake, decisions, search, reports).
-- Template upload, pixel-perfect Word printing, and Firebase integration are stubbed UI elements and will be wired up next.
+- Firebase authentication is wired; without credentials the app runs in demo mode.
+- Template upload, pixel-perfect Word printing, and full Firebase data wiring will be implemented next.

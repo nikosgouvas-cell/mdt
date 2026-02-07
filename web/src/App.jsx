@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
+import { auth, isFirebaseConfigured } from "./firebase.js";
 
 const tabs = [
   "Dashboard",
@@ -47,6 +49,19 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [query, setQuery] = useState("");
   const [role, setRole] = useState("Coordinator");
+  const [user, setUser] = useState(null);
+  const [authError, setAuthError] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [demoMode, setDemoMode] = useState(false);
+
+  useEffect(() => {
+    if (!auth) return undefined;
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+    });
+    return unsubscribe;
+  }, []);
 
   const filteredCases = useMemo(() => {
     const lowered = query.trim().toLowerCase();
@@ -58,12 +73,93 @@ export default function App() {
     );
   }, [query]);
 
+  const handleLogin = async (event) => {
+    event.preventDefault();
+    setAuthError("");
+    if (!auth) {
+      setAuthError("Firebase is not configured yet.");
+      return;
+    }
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      setAuthError(error.message ?? "Unable to sign in.");
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (!auth) {
+      setUser(null);
+      setDemoMode(false);
+      return;
+    }
+    await signOut(auth);
+  };
+
+  const handleDemoAccess = () => {
+    setDemoMode(true);
+    setUser({ email: "demo@gi-mdt.local", displayName: "Demo Coordinator" });
+    setRole("Coordinator");
+  };
+
+  if (!user) {
+    return (
+      <div className="auth">
+        <div className="auth__card">
+          <h1>GI Cancer MDT</h1>
+          <p className="muted">
+            Sign in with your organizational email address to access the MDT
+            workspace.
+          </p>
+          {!isFirebaseConfigured && (
+            <div className="banner">
+              <strong>Firebase not configured.</strong>
+              <p>
+                Add Firebase credentials in <code>web/.env</code> to enable real
+                sign-in, or continue in demo mode for UI review.
+              </p>
+              <button type="button" onClick={handleDemoAccess}>
+                Continue in demo mode
+              </button>
+            </div>
+          )}
+          {isFirebaseConfigured && (
+            <form onSubmit={handleLogin} className="form">
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="name@organization.org"
+                  required
+                />
+              </label>
+              <label>
+                Password
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  required
+                />
+              </label>
+              {authError && <p className="error">{authError}</p>}
+              <button type="submit">Sign in</button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <header className="app__header">
         <div>
           <h1>GI Cancer MDT</h1>
           <p>Weekly MDT workflow, decisions, and reporting</p>
+          <p className="muted">Signed in as {user.displayName ?? user.email}</p>
         </div>
         <div className="app__role">
           <label htmlFor="role">Role</label>
@@ -71,10 +167,14 @@ export default function App() {
             id="role"
             value={role}
             onChange={(event) => setRole(event.target.value)}
+            disabled={!demoMode && role === "Coordinator"}
           >
             <option>Coordinator</option>
             <option>Doctor</option>
           </select>
+          <button type="button" className="ghost" onClick={handleSignOut}>
+            Sign out
+          </button>
         </div>
       </header>
 
