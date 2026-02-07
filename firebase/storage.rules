@@ -1,0 +1,28 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isCoordinator() {
+      return isSignedIn() &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'coordinator';
+    }
+
+    match /templates/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isCoordinator();
+    }
+
+    match /attachments/{caseId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    match /branding/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isCoordinator();
+    }
+  }
+}

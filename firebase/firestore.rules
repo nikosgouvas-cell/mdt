@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isCoordinator() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'coordinator';
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isCoordinator();
+      allow update: if isCoordinator() || request.auth.uid == userId;
+      allow delete: if isCoordinator();
+    }
+
+    match /cases/{caseId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isCoordinator();
+    }
+
+    match /decisions/{decisionId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isCoordinator();
+    }
+
+    match /templates/{templateId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isCoordinator();
+    }
+
+    match /auditLogs/{logId} {
+      allow read: if isCoordinator();
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+  }
+}
