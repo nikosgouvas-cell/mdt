@@ -29,6 +29,7 @@
 ## 6) Configure local environment
 1. Copy `web/.env.example` to `web/.env`.
 2. Paste Firebase config values from Project Settings → General → Your apps.
+3. `measurementId` is optional (Firebase SDK v7.20.0+).
 
 ## 7) Run the app locally
 ```bash
